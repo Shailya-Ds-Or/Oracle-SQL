@@ -182,3 +182,52 @@ select * from user_sequences; -- HR
 select * from all_sequences; -- HR
 
 select * from dba_sequences; -- SYS, SYSTEM
+
+
+--------------------------------------------------------------------------------
+
+-- 3) Synonyms:
+/*
+Database Object Created to Give an Alternative Name to Another Database object.
+Can be thought of simply as an Alias.
+Useful for Hiding Name and Location of an Object.
+Used for Abbreviating Complex Object Names and Eliminating Need to Write Schema Name before Object Name.
+*/
+
+-- 3.1) Creating and Dropping Synonyms:
+
+create synonym sy for employees;
+
+select * from sy;
+
+create public synonym sy2 for employees; -- HR, Error.
+
+create public synonym sy2 for hr.employees; -- SYSTEM
+
+select * from sy2; -- SYS
+
+drop synonym sy; -- HR
+
+drop public synonym sy2; -- SYSTEM
+
+
+-- 3.2) Using Synonyms:
+
+create synonym sy for user_objects;
+
+select * from sy
+where object_name = 'EMPLOYEES';
+
+drop synonym sy;
+
+
+-- 3.3) USER_SYNONYMS View:
+
+select * from user_synonyms; -- HR
+
+select * from all_synonyms; -- HR
+
+select * from dba_synonyms; -- SYS, SYSTEM
+
+select * from dba_synonyms
+where owner = 'OE'; -- SYS, SYSTEM
