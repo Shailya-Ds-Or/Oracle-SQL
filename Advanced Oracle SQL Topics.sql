@@ -229,5 +229,153 @@ select * from all_synonyms; -- HR
 
 select * from dba_synonyms; -- SYS, SYSTEM
 
+
+--------------------------------------------------------------------------------
+
+-- 4) Index:
+
+-- 4.1) Creating Index:
+
+create unique index temp_idx
+on employees (employee_id); -- Error.
+
+--
+create unique index phone_num_idx
+on employees(phone_number);
+
+select * from employees 
+where last_name = 'King'; -- F10
+
+select * from employees
+where phone_number = '515.123.4567';
+--
+
+create unique index name_idx
+on employees (first_name, last_name);
+
+select * from employees
+where first_name = 'Steven'; -- F10
+
+select* from employees
+where last_name = 'King'; -- F10
+
+select * from employees
+where last_name = 'King' and first_name = 'Steven'; -- F10
+
+select * from employees
+where first_name = 'Steven' and last_name = 'King'; -- F10
+--
+
+create bitmap index comm_pct_idx
+on employees (commission_pct); -- F10
+
+select * from employees
+where commission_pct = 0.25; --F10
+
+
+-- 4.2) Creating Index while Table Creation:
+
+create table employee_temp (
+                            emp_id number(6) primary key using index(
+                                                create index emp_id_idx on employee_temp(emp_id)),
+                            first_name varchar2(50),
+                            last_name varchar2(50)
+                            );
+
+select * from employee_temp; -- SHIFT+F4
+
+drop table employee_temp;
+--
+
+create table employee_temp (
+                            emp_id number,
+                            first_name varchar2(50),
+                            last_name varchar2(50)
+                            );
+    
+create index emp_id_idx
+on employee_temp (emp_id);
+
+alter table employee_temp
+add primary key (emp_id)
+using index emp_id_idx;
+
+select * from employee_temp; -- SHIFT+F4
+
+drop table employee_temp;
+
+
+-- 4.3) Function Based Index:
+
+select * from employees
+where upper(first_name) = 'ALEX'; -- F10
+
+create index first_name_idx
+on employees (upper(first_name));
+
+select * from employees
+where upper(first_name) = 'ALEX'; -- F10
+
+
+-- 4.4) Multiple Indexes on Same Column:
+/*
+Multiple Indexes on Same Set of Columns have to be Different Kind of Indexes.
+If we have Multiple Indexes on Same Set of Columns, Only One Index can be Visible at a Time. 
+*/
+
+create table employee_temp (
+                            emp_id number,
+                            first_name varchar2(50),
+                            last_name varchar2(50)
+                            );
+                            
+create index temp_idx
+on employee_temp(first_name, last_name);
+
+create bitmap index temp_idx2
+on employee_temp(first_name, last_name); -- Error.
+
+alter index temp_idx invisible;
+
+create bitmap index temp_idx2
+on employee_temp(first_name, last_name);
+
+select * from employee_temp
+where first_name = 'Xx'
+and last_name = 'Yy'; -- F10
+
+alter index temp_idx2 invisible;
+
+select * from employee_temp
+where first_name = 'Xx'
+and last_name = 'Yy'; -- F10
+
+alter index temp_idx visible;
+
+select * from employee_temp
+where first_name = 'Xx'
+and last_name = 'Yy'; -- F10
+
+
+-- 4.5) Dropping Index:
+
+drop index temp_idx;
+
+drop index temp_idx2 online;
+
+drop table employee_temp;
+
+
+-- 4.6) USER_INDEXES and USER_IND_COLUMNS View:
+
+select * from user_indexes; -- HR
+select * from user_ind_columns; -- HR
+
+select * from all_indexes; -- HR
+select * from all_ind_columns; --HR
+
+select * from dba_indexes; -- SYS, SYSTEM
+select * from dba_ind_columns; -- SYS, SYSTEM
+
 select * from dba_synonyms
 where owner = 'OE'; -- SYS, SYSTEM
