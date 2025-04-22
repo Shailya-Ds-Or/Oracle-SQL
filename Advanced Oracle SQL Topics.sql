@@ -625,3 +625,311 @@ drop view empvw20;
 drop view emp_cx_vw;
 
 select * from user_views;
+
+
+--------------------------------------------------------------------------------
+
+-- 6) Materialized Views:
+/*
+Materialized View has a Stored SQL Query and a Table which Keeps the Returning Data of that Query.
+Materialized View Refreshes This table on a Specified Time Frequency or On Demand.
+Useful for Reducing Network Loads and Reducing SQL Costs. 
+*/
+
+-- 6.1) Creating Simple Materialized View:
+
+grant create materialized view to hr; -- SYS
+
+create materialized view department_max_salaries_mv
+build immediate
+refresh complete on demand
+enable query rewrite
+as
+select department_id, max(salary)
+from employees
+group by department_id
+order by department_id;
+
+select * from department_max_salaries_mv;
+
+
+-- 6.2) Complex Materialized Views:
+/*
+Can not be Fast Refreshed or On Commit Refreshed.
+*/
+
+create materialized view department_min_salaries_mv
+build immediate
+refresh complete on demand
+enable query rewrite
+as
+select d.department_name, e.*
+from departments d join employees e
+on (e.department_id = d.department_id)
+where (e.department_id, salary) in 
+                                    (select department_id, min(salary)
+                                    from employees
+                                    group by department_id)
+order by e.department_id, salary;
+
+select * from department_min_salaries_mv;
+
+--
+
+create materialized view employee_departments 
+as
+select distinct department_id from employees
+order by department_id;
+
+select * from employee_departments;
+
+--
+
+create materialized view mview_employees
+as
+select employee_id, first_name, last_name, department_id, job_id
+from employees
+where department_id = 80
+
+union all
+
+select employee_id, first_name, last_name, department_id, job_id
+from employees
+where job_id = 'IT_PROG';
+
+select * from mview_employees;
+
+--
+
+create materialized view emp_depts
+as
+select employee_id, first_name, last_name, department_name
+from employees e join departments d
+on (e.department_id = d.department_id);
+
+select * from emp_depts;
+
+--
+
+create materialized view avg_salaries
+as
+select avg(salary) "Average Salary", count(*)
+from employees;
+
+select * from avg_salaries;
+
+
+-- 6.3) Refreshing Materialized Views:
+
+/*
+1) Fast Refresh: Changes (DML) made on Master Tables are Stored in Materialized View Log.
+                 On Refresh, only These Changes are Applied to Materialized View Instead of
+                 Completely Refreshing it.
+                 
+                 We need to Create a Materialized View Log Associated with Master Table(s)
+                 for using Fast Refresh.
+*/
+create materialized view log on employees_copy;
+
+create materialized view sales_managers_mv
+build immediate
+refresh fast on commit
+as
+select * from employees_copy
+where job_id = 'SA_MAN';
+
+select * from sales_managers_mv;
+
+insert into employees_copy
+values (
+        500,
+        'Alex',
+        'Brown',
+        'ABROWN',
+        '011.44.1344.429000',
+        sysdate,
+        'SA_MAN',
+        10000,
+        null,
+        102,
+        60);
+
+select * from employees_copy
+where employee_id = 500;
+
+select * from sales_managers_mv;
+
+commit;
+
+select * from sales_managers_mv;
+
+/*
+2) Complete Refresh: Truncates The Whole table Associated With Materialized View and
+                     Refills it Completely from Defining Query.
+                     If we Request Complete Refresh, Oracle Will Perform Complete Refresh even
+                     if Fast Refresh is Suitable and Available.
+*/
+
+drop materialized view log on employees;
+drop materialized view sales_managers_mv;
+
+create materialized view sales_managers_mv
+build immediate
+refresh complete on commit
+as
+select * from employees_copy
+where job_id = 'SA_MAN';
+
+select * from sales_managers_mv;
+
+insert into employees_copy
+values (
+        501,
+        'Alex',
+        'Kumar',
+        'AKUMAR',
+        '011.44.1344.429111',
+        sysdate,
+        'SA_MAN',
+        10000,
+        null,
+        102,
+        60);
+
+select * from employees_copy
+where employee_id = 501;
+
+select * from sales_managers_mv;
+
+commit;
+
+select * from sales_managers_mv;
+
+/*
+3) FORCE REFRESH: Default.
+                  If Specified, Oracle will Try to Perform Fast Refresh if Possible.
+                  If Not Possible, Oracle will Perfrom Complete Refresh.
+*/
+
+create materialized view it_programmers_mv
+build immediate
+refresh force on commit
+as
+select * from employees_copy
+where job_id = 'IT_PROG'
+order by department_id;
+
+select * from it_programmers_mv;
+
+insert into employees_copy
+values (
+        502,
+        'It',
+        'Guru',
+        'IGURU',
+        '011.44.1344.429222',
+        sysdate,
+        'IT_PROG',
+        10000,
+        null,
+        103,
+        60);
+
+select * from employees_copy
+where employee_id = 502;
+
+select * from it_programmers_mv;
+
+commit;
+
+select *  from it_programmers_mv;
+
+--
+
+select * from user_mviews;
+
+drop materialized view DEPARTMENT_MAX_SALARIES_MV;
+drop materialized view DEPARTMENT_MIN_SALARIES_MV;
+drop materialized view EMPLOYEE_DEPARTMENTS;
+drop materialized view MVIEW_EMPLOYEES;
+drop materialized view EMP_DEPTS;
+drop materialized view AVG_SALARIES;
+drop materialized view SALES_MANAGERS_MV;
+drop materialized view IT_PROGRAMMERS_MV;
+
+
+-- 6.4) Manual Refresh of Materialized Views:
+
+-- 1) Using DBMS_MVIEW.REFRESH('MVIEW_NAME', REFRESH_TYPE) Procedure: (Refresh Type: F: FORCE, C: COMPLETE)
+
+create materialized view it_programmers_mv
+build immediate
+refresh force
+as
+select * from employees_copy
+where job_id = 'IT_PROG'
+order by department_id;
+
+select * from it_programmers_mv;
+
+select * from employees_copy
+where job_id = 'IT_PROG'
+order by department_id;
+
+insert into employees_copy
+values (
+        333,
+        'Alex',
+        'Green',
+        'AGREEN',
+        '590.423.4500',
+        sysdate,
+        'IT_PROG',
+        10000,
+        null,
+        102,
+        70);
+        
+commit;
+
+select * from employees_copy
+where job_id = 'IT_PROG'
+order by department_id;
+
+select * from it_programmers_mv;
+
+execute dbms_mview.refresh('it_programmers_mv', 'F');
+
+select * from it_programmers_mv;
+
+delete from employees_copy
+where employee_id = 333;
+
+commit;
+
+select * from it_programmers_mv;
+
+execute dbms_snapshot.refresh('it_programmers_mv', 'C');
+
+select * from it_programmers_mv;
+
+select * from user_mviews;
+
+drop materialized view it_programmers_mv;
+
+
+-- 6.5) Scheduling Periodic Refresh:
+
+create materialized view sales_managers_mv
+build immediate
+refresh force
+start with sysdate + 3/24 -- (First Refresh after 3 Hours of Creation)
+next sysdate + 5 -- (All Consecutive Updates will be at 5 Days Intervals)
+as
+select * from employees_copy
+where job_id = 'SA_MAN'
+order by department_id;
+
+select * from sales_managers_mv;
+
+drop materialized view sales_managers_mv;
