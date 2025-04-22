@@ -94,3 +94,91 @@ select * from all_col_comments; -- HR
 
 select * from dba_tab_comments; -- SYS, SYSTEM 
 select * from dba_col_comments; -- SYS, SYSTEM
+
+
+--------------------------------------------------------------------------------
+
+-- 2) Sequences:
+/* Used to Create Unique Integers automatically.
+Is sharable Object, can be used by Multiple Users.
+Used for Creating Primary Key Values mainly.
+*/
+
+-- 2.1) Creating Sequences:
+create sequence seq1
+start with 100
+increment by 3
+maxvalue 99999
+cache 50
+nocycle
+noorder;
+
+
+-- 2.2) Modifying Sequence:
+alter sequence seq1
+increment by 4
+maxvalue 100000
+cache 30
+cycle
+order;
+
+
+-- 2.3) Dropping Sequence:
+drop sequence seq1;
+
+
+-- 2.4) Using Sequences:
+
+create sequence seq
+start with 100
+increment by 3
+maxvalue 99999
+cache 50
+nocycle
+noorder;
+
+select seq.currval from dual; -- Error.
+select seq.nextval from dual;
+select seq.nextval from dual;
+
+select seq.nextval from employees; -- To generate 107 Next Numbers from Sequence (Employees has 107 rows)
+
+insert into employees (employee_id, first_name, last_name, email, hire_date, salary, job_id)
+values (
+        seq.nextval,
+        'Alex',
+        'Earnst',
+        'ALEXIS',
+        sysdate,
+        8000,
+        'IT_PROG'); -- Using Sequence in a Primary key Column.
+        
+select * from employees;
+
+rollback;
+
+select * from employees;
+
+select seq.currval from dual;
+
+create table temp (
+                    t1 number default seq.nextval not null,
+                    t2 varchar2(50)
+                    ); -- using Sequence as Default Value for a Column.
+
+insert into temp (t2) values ('Alex');
+insert into temp (t2) values ('Brown');
+insert into temp values (100, 'Alex');
+select * from temp;
+select seq.currval from dual;
+
+drop table temp;
+
+
+-- 2.5) USER_SEQUENCES View:
+
+select * from user_sequences; -- HR
+
+select * from all_sequences; -- HR
+
+select * from dba_sequences; -- SYS, SYSTEM
