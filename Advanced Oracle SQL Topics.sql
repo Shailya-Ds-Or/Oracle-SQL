@@ -379,3 +379,249 @@ select * from dba_ind_columns; -- SYS, SYSTEM
 
 select * from dba_synonyms
 where owner = 'OE'; -- SYS, SYSTEM
+
+
+--------------------------------------------------------------------------------
+
+-- 5) Views:
+/*
+Schema Object Based on a Stored Select Statement Based on Another Table or View.
+Stored in Data Dictionary as a SELECT Statement.
+Used for : Restricting Access to Data,
+           Making Complex Queries Easy,
+           Presenting Different Views of Same Data.
+*/
+
+-- 5.1) Creating Simple Views:
+
+create view empvw90 as
+select * from employees
+where department_id = 90;
+
+select * from empvw90;
+
+--
+
+create view empvw20 as
+select employee_id, first_name, last_name
+from employees
+where department_id = 20;
+
+select * from empvw20;
+
+--
+
+create view empvw30 as
+select employee_id eid, first_name name, last_name surname
+from employees
+where department_id = 30;
+
+select * from empvw30;
+
+--
+
+create view empvw40 (eid, name, surname) as
+select employee_id, first_name, last_name
+from employees
+where department_id = 40;
+
+select * from empvw40;
+
+
+-- 5.2) Creating Complex Views:
+
+create view emp_cx_vw (dname, min_sal, max_sal) as
+select upper(department_name), min(salary), max(salary)
+from employees e join departments d
+on (e.department_id = d.department_id)
+group by department_name;
+
+select * from emp_cx_vw;
+
+
+-- 5.3) Modifying Views:
+
+select * from empvw30;
+
+create or replace view empvw30 (eid, full_name, email, phone) as
+select employee_id, first_name || ' ' || last_name, email, phone_number
+from employees
+where department_id = 30;
+
+select * from empvw30;
+
+
+-- 5.4) USER_VIEWS View:
+
+select * from user_views; -- HR
+
+select * from all_views; -- HR
+
+select * from dba_views; -- SYS, SYSTEM
+
+
+-- 5.5) DML Operations with Views:
+
+select * from employees_copy;
+
+create or replace view empvw80 as
+select employee_id, first_name, last_name, email, hire_date, job_id
+from employees_copy
+where department_id = 80;
+
+select * from empvw80;
+
+insert into empvw80
+values (
+        213,
+        'Alex',
+        'Hummel',
+        'AHUMMEL',
+        sysdate,
+        'IT_PROG');
+
+select * from employees_copy;
+select * from empvw80;
+
+rollback;
+
+
+-- 5.6) WITH CHECK OPTION:
+
+create or replace view empvw80 as
+select employee_id, first_name, last_name, email, hire_date, job_id
+from employees_copy
+where department_id = 80;
+
+select * from empvw80;
+
+insert into empvw80
+values (
+        213,
+        'Alex',
+        'Hummel',
+        'AHUMMEL',
+        sysdate,
+        'IT_PROG');
+        
+select * from empvw80
+where employee_id = 213;
+
+select * from employees_copy
+where employee_id = 213;
+
+rollback;
+
+--
+
+create or replace view empvw80 as
+select employee_id, first_name, last_name, email, hire_date, job_id, department_id
+from employees_copy
+where department_id = 80;
+
+select * from empvw80;
+
+insert into empvw80
+values (
+        213,
+        'Alex',
+        'Hummel',
+        'AHUMMEL',
+        sysdate,
+        'IT_PROG',
+        80);
+        
+select * from employees_copy
+where employee_id = 213;
+
+select * from empvw80
+where employee_id = 213;
+
+insert into empvw80
+values (
+        214,
+        'Alex',
+        'Hummel',
+        'AHUMMEL',
+        sysdate,
+        'IT_PROG',
+        90);
+        
+select * from employees_copy
+where employee_id = 214;
+
+select * from empvw80
+where employee_id = 214;
+
+rollback;
+--
+
+create or replace view empvw80 as
+select employee_id, first_name, last_name, email, hire_date, job_id, department_id
+from employees_copy
+where department_id = 80
+with check option;
+
+insert into empvw80
+values (
+        215,
+        'Alex',
+        'Hummel',
+        'AHUMMEL',
+        sysdate,
+        'IT_PROG',
+        90); -- SQL Error: ORA-01402: view WITH CHECK OPTION where-clause violation
+
+insert into empvw80
+values (
+        215,
+        'Alex',
+        'Hummel',
+        'AHUMMEL',
+        sysdate,
+        'IT_PROG',
+        80);
+        
+select * from employees_copy
+where employee_id = 215;
+
+select * from empvw80
+where employee_id = 215;
+
+rollback;
+select * from employees_copy;
+
+
+-- 5.7) WITH READ ONLY:
+
+create or replace view empvw80 as
+select employee_id, first_name, last_name, email, hire_date, job_id,department_id
+from employees_copy
+where department_id = 80
+with read only;
+
+select * from empvw80;
+
+insert into empvw80
+values (
+        215,
+        'Alex',
+        'Hummel',
+        'AHUMMEL',
+        sysdate,
+        'IT_PROG',
+        80); -- SQL Error: ORA-42399: cannot perform a DML operation on a read-only view
+        
+
+-- 5.8) Dropping Views:
+
+select * from user_views;
+
+drop view empvw90;
+drop view empvw80;
+drop view empvw40;
+drop view empvw30;
+drop view empvw20;
+drop view emp_cx_vw;
+
+select * from user_views;
