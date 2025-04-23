@@ -426,3 +426,166 @@ insert all
 select * from emp_sales;
 
 select * from emp_sales_normalized;
+
+
+-- 8.3) MERGE Statement:
+
+select * from employees_copy;
+
+delete from employees_copy
+where job_id != 'SA_REP';
+
+select * from employees_copy;
+
+update employees_copy
+set first_name = 'Alex';
+
+select * from employees_copy;
+
+merge into employees_copy c
+using (select * from employees) e
+on (c.employee_id = e.employee_id)
+when matched then
+    update set
+        c.first_name = e.first_name,
+        c.last_name = e.last_name
+    
+    delete where department_id is null
+
+when not matched then
+    insert values (e.employee_id, e.first_name, e.last_name, e.email, e.phone_number, e.hire_date,
+                    e.job_id, e.salary, e.commission_pct, e.manager_id, e.department_id);
+                    
+select * from employees_copy;
+
+
+-- 8.4) FLASHBACK Operations:
+
+select * from recyclebin;
+
+select * from employees_copy;
+
+delete from employees_copy
+where salary > 5000;
+
+commit;
+
+select * from employees_copy;
+
+alter table employees_copy enable row movement;
+
+flashback table employees_copy to timestamp sysdate - 2/1440;
+
+select * from employees_copy;
+
+--
+select dbms_flashback.get_system_change_number from dual; -- SYSTEM
+
+delete from employees_copy
+where department_id = 80;
+
+commit;
+
+select * from employees_copy;
+
+flashback table employees_copy to scn 12351744;
+
+select * from employees_copy;
+
+--
+drop table employees_copy;
+
+select * from recyclebin;
+
+flashback table employees_copy to before drop;
+
+select * from employees_copy;
+
+
+-- 8.5) Purge Operations:
+
+select * from recyclebin;
+
+create table emp_cpy
+as
+select * from employees;
+
+select * from emp_cpy;
+
+drop table emp_cpy;
+
+select * from recyclebin;
+
+flashback table emp_cpy to before drop;
+
+select * from emp_cpy;
+
+drop table emp_cpy purge;
+
+select * from recyclebin;
+
+purge recyclebin;
+
+select * from recyclebin;
+
+
+-- 8.5) FLASHBACK QUERY and FLASHBACK VERSIONS QUERY:
+
+select * from employees_copy;
+
+select salary from employees_copy
+where employee_id = 100;
+
+select dbms_flashback.get_system_change_number from dual; -- SYSTEM
+
+update employees_copy
+set salary = 15000
+where employee_id = 100;
+
+select salary from employees_copy
+where employee_id = 100;
+
+select salary from employees_copy
+as of scn 12353540
+where employee_id = 100;
+
+select salary from employees_copy
+as of timestamp (sysdate - interval '2' minute)
+where employee_id = 100;
+
+rollback;
+
+--
+
+select * from employees_copy
+where employee_id = 100;
+
+select dbms_flashback.get_system_change_number from dual; -- SYSTEM
+
+update employees_copy
+set salary = 10000
+where employee_id = 100;
+commit;
+
+update employees_copy
+set salary = 15000
+where employee_id = 100;
+commit;
+
+update employees_copy
+set salary = 20000
+where employee_id = 100;
+commit;
+
+select * from employees_copy
+where employee_id = 100;
+
+select versions_starttime, salary from employees_copy
+versions between timestamp (sysdate - interval '1' minute) and sysdate
+where employee_id = 100;
+
+select dbms_flashback.get_system_change_number from dual; -- SYSTEM
+
+select versions_starttime, salary from employees_copy
+versions between scn 12354274 and 12354334
+where employee_id = 100;
