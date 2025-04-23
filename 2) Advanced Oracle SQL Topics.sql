@@ -695,3 +695,105 @@ select * from employees_copy;
 
 alter table employees_copy
 rename constraint SYS_C009349 to last_name_nn;
+
+
+-- 9.6) Deferring Constraints:
+
+create table departments_copy
+as select * from departments;
+
+select * from departments_copy;
+
+alter table departments_copy
+add constraint dept_cpy_dept__id_pk primary key (department_id)
+deferrable initially deferred;
+
+insert into departments_copy
+values (
+        10,
+        'Temp Dept',
+        200,
+        1700
+        ); -- Insert is allowed ebven though department_copy alreeady has department with id 10.
+        
+select * from departments_copy;
+
+commit;
+-- ORA-02091: transaction rolled back
+-- ORA-00001: unique constraint (HR.DEPT_CPY_DEPT__ID_PK) violated.
+
+set constraint dept_cpy_dept__id_pk immediate;
+
+insert into departments_copy
+values (
+        10,
+        'Temp Dept',
+        200,
+        1700
+        ); -- ORA-00001: unique constraint (HR.DEPT_CPY_DEPT__ID_PK) violated
+        
+--
+alter session set constraints = immediate; -- All deferrable Constraints are set to Immediate.
+
+--
+alter table departments_copy
+drop constraint dept_cpy_dept__id_pk;
+
+alter table departments_copy
+add constraint dept_cpy_dept__id_pk primary key(department_id)
+not deferrable;
+
+alter session set constraints = immediate;
+
+insert into departments_copy
+values (
+        10,
+        'Temp Dept',
+        200,
+        1700
+        ); -- ORA-00001: unique constraint (HR.DEPT_CPY_DEPT__ID_PK) violated
+
+set constraint dept_cpy_dept__id_pk deferred; -- ORA-02447: cannot defer a constraint that is not deferrable
+
+--
+set constraints all immediate; -- To Make All Deferrable Constraints Immediate. 
+set constraints all deferred; -- To Make All Deferrable Constraints Deferred.
+
+
+-- 9.7) Temporary Tables:
+
+create global temporary table shopping_cart (
+                                             id number,
+                                             shopping_date date
+                                             ) on commit delete rows; -- Transaction Specific Table.
+                                             
+insert into shopping_cart
+values (
+        1,
+        sysdate
+        );
+        
+insert into shopping_cart
+values (
+        2,
+        sysdate
+        );
+
+select * from shopping_cart;
+
+commit;
+
+select * from shopping_cart;
+
+--
+create global temporary table sales_managers
+on commit preserve rows
+as
+select * from employees
+where job_id = 'SA_MAN'; -- Session Specific Table.
+
+select * from sales_managers;
+
+commit;
+
+select * from sales_managers;
