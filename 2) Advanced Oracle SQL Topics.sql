@@ -589,3 +589,109 @@ select dbms_flashback.get_system_change_number from dual; -- SYSTEM
 select versions_starttime, salary from employees_copy
 versions between scn 12354274 and 12354334
 where employee_id = 100;
+
+
+--------------------------------------------------------------------------------
+
+-- 9) Constraints:
+
+-- 9.1) Adding Constraints:
+
+select * from employees_copy;
+
+alter table employees_copy
+add constraint temp_cons unique(email);
+
+alter table employees_copy
+add constraint temp_cons2 unique (first_name, last_name);
+
+alter table employees_copy
+add unique(phone_number);
+
+alter table employees_copy
+modify first_name constraint first_name_nn not null;
+
+alter table employees_copy
+modify employee_id not null;
+
+
+-- 9.2) Removing Constraints:
+
+alter table employees_copy
+drop constraint temp_cons;
+
+alter table employees_copy
+drop constraint temp_cons2;
+
+alter table employees_copy
+drop constraint first_name_nn;
+
+alter table employees_copy
+drop constraint SYS_C009355 online;
+
+alter table employees_copy
+drop constraint SYS_C009357 cascade;
+
+
+-- 9.3) ON DELETE CASCASE and ON DELETE SET NULL:
+
+select * from salary_history;
+
+alter table employees_copy
+add constraint emp_id_pk primary key (employee_id);
+
+alter table salary_history
+add constraint sal_emp_fk foreign key (employee_id)
+references employees_copy(employee_id);
+
+delete from employees_copy
+where employee_id = 166; -- ORA-02292: integrity constraint (HR.SAL_EMP_FK) violated - child record found
+
+--
+alter table salary_history
+drop constraint sal_emp_fk;
+
+alter table salary_history
+add constraint sal_emp_fk foreign key(employee_id)
+references employees_copy(employee_id) on delete cascade;
+
+delete from employees_copy
+where employee_id = 166;
+
+select * from salary_history;
+
+rollback;
+
+--
+alter table salary_history
+drop constraint sal_emp_fk;
+
+alter table salary_history
+add constraint sal_emp_fk foreign key(employee_id)
+references employees_copy(employee_id) on delete set null;
+
+select * from salary_history;
+
+delete from employees_copy
+where employee_id = 167;
+
+select * from salary_history;
+
+rollback;
+
+
+-- 9.4) Cascading Constraints:
+
+alter table employees_copy
+drop column employee_id; -- RA-12992: cannot drop parent key column
+
+alter table employees_copy
+drop column employee_id cascade constraints;
+
+
+-- 9.5) Renaming Constraints:
+
+select * from employees_copy;
+
+alter table employees_copy
+rename constraint SYS_C009349 to last_name_nn;
