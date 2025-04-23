@@ -228,3 +228,201 @@ where department_id in (
 select * from employees_copy;
 
 rollback;
+
+
+--------------------------------------------------------------------------------
+
+-- 8) Advanced DML Operations:
+
+-- 8.1) Using DEFAULT Keyword While Inserting and Updating:
+drop table departments_copy;
+
+create table departments_copy
+as select * from departments;
+
+select * from departments_copy;
+
+info departments_copy;
+
+alter table departments_copy
+modify manager_id number(6) default 100;
+
+info departments_copy;
+
+insert into departments_copy (department_id, department_name, manager_id, location_id)
+values (
+        310,
+        'Temp Dept',
+        default,
+        2000
+        );
+
+select * from departments_copy;
+
+update departments_copy
+set manager_id = default;
+
+select * from departments_copy;
+
+rollback;
+
+
+-- 8.2) Multitable Insert Statements:
+
+-- 8.2.1) Unconditional Insert All Statement:
+
+create table employees_history
+as
+select employee_id, first_name, last_name, hire_date
+from employees
+where 1 = 2;
+
+create table salary_history (
+                             employee_id number,
+                             year number,
+                             month number,
+                             salary number,
+                             commission_pct number
+                             );
+                             
+select * from employees_history;
+select * from salary_history;
+
+insert all
+into employees_history
+values (employee_id, first_name, last_name, hire_date)
+
+into salary_history
+values (employee_id, extract(year from sysdate), extract(month from sysdate), salary, commission_pct)
+
+select * from employees
+where department_id = 80;
+
+select * from employees_history;
+select * from salary_history;
+
+
+-- 8.2.2) Conditional Insert All Statement:
+
+truncate table employees_history;
+truncate table salary_history;
+
+create table it_programmers
+as
+select employee_id, first_name, last_name, hire_date
+from employees
+where 1 = 2;
+
+create table working_in_the_us
+as
+select employee_id, first_name, last_name, job_id, department_id
+from employees
+where 1 = 2;
+
+select * from employees_history;
+select * from salary_history;
+select * from it_programmers;
+select * from working_in_the_us;
+
+insert all
+    when hire_date > to_date('15-MAR-08') then
+        into employees_history values (employee_id, first_name, last_name, hire_date)
+        into salary_history values (employee_id, extract(year from sysdate), extract(month from sysdate),
+                                    salary, commission_pct)
+    
+    when job_id = 'IT_PROG' then
+        into it_programmers values (employee_id, first_name, last_name, hire_date)
+    
+    when department_id in (
+                            select department_id from departments
+                            where location_id in (
+                                                  select location_id from locations
+                                                  where country_id = 'US')) then
+        into working_in_the_us values (employee_id, first_name, last_name, job_id, department_id)
+
+select * from employees;
+
+select * from employees_history;
+select * from salary_history;
+select * from it_programmers;
+select * from working_in_the_us;
+
+
+-- 8.2.3) Conditional Insert First Statement:
+
+create table low_salaries as
+    select employee_id, department_id, salary
+    from employees
+    where 1 = 2;
+select * from low_salaries;
+
+create table average_salaries as
+    select employee_id, department_id, salary
+    from employees
+    where 1 = 2;
+select * from average_salaries;
+
+create table high_salaries as
+    select employee_id, department_id, salary
+    from employees
+    where 1 = 2;
+select * from high_salaries;
+
+insert first
+    when salary < 5000 then
+        into low_salaries values (employee_id, department_id, salary)
+    
+    when salary between 5000 and 10000 then
+        into average_salaries values (employee_id, department_id, salary)
+        
+    else
+        into high_salaries values (employee_id, department_id, salary)
+
+select * from employees;
+
+select * from low_salaries;
+select * from average_salaries;
+select * from high_salaries;
+
+
+-- 8.2.4) Pivoting Insert Statement:
+
+-- Creating PIVOT Table of Sales by Employees on Each Week Day:
+
+create table emp_sales (
+                        employee_id number(6),
+                        week_id number(2),
+                        sales_mon number,
+                        sales_tue number,
+                        sales_wed number,
+                        sales_thu number,
+                        sales_fri number
+                        );
+select * from emp_sales;
+
+-- Creating Normalized Table of Sales by Employees on Each Week Day:
+
+create table emp_sales_normalized (
+                                    employee_id number(6),
+                                    week_id number(2),
+                                    sales number,
+                                    day varchar2(3)
+                                    );
+select * from emp_sales_normalized;
+
+-- Inserting Data into Pivot Table:
+insert all
+    into emp_sales values (105,23,2500,3200,4700,5600,2900)
+    into emp_sales values (106,24,2740,3060,4920,5650,2800)
+select * from dual;
+select * from emp_sales;
+
+insert all
+    into emp_sales_normalized values (employee_id, week_id, sales_mon, 'MON')
+    into emp_sales_normalized values (employee_id, week_id, sales_tue, 'TUE')
+    into emp_sales_normalized values (employee_id, week_id, sales_wed, 'WED')
+    into emp_sales_normalized values (employee_id, week_id, sales_thu, 'THU')
+    into emp_sales_normalized values (employee_id, week_id, sales_fri, 'FRI')
+select * from emp_sales;
+
+select * from emp_sales_normalized;
