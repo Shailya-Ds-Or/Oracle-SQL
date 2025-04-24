@@ -92,3 +92,89 @@ select * from user_tab_privs; -- HR
 select * from all_tab_privs; -- HR
 
 select * from user_col_privs; -- HR
+
+
+-- 11) Hierarchical Retrieval:
+
+-- 11.1) Bottom Up and Top Down Hierarchy:
+
+-- Bottom Up:
+select employee_id, first_name, last_name, job_id, manager_id
+from employees
+start with employee_id = 102
+connect by prior manager_id = employee_id;
+-- OR
+select employee_id, first_name, last_name, job_id, manager_id
+from employees
+start with employee_id = 102
+connect by employee_id = prior manager_id;
+
+-- Top Down:
+select employee_id, first_name, last_name, job_id, manager_id
+from employees
+start with employee_id = 102
+connect by prior employee_id = manager_id;
+-- OR
+select employee_id, first_name, last_name, job_id, manager_id
+from employees
+start with employee_id = 102
+connect by manager_id = prior employee_id;
+
+
+-- 11.2) Ranking Rows Using LEVEL Pseudocolumn;
+
+select level, employee_id, first_name, last_name, job_id, manager_id
+from employees
+where level = 2
+start with employee_id = 101
+connect by prior employee_id = manager_id;
+
+select level, employee_id, first_name, last_name, job_id, manager_id
+from employees
+--where level = 2
+start with employee_id = 101
+connect by prior employee_id = manager_id;
+
+select level, employee_id, first_name, last_name, manager_id
+from employees
+start with manager_id is null
+connect by prior employee_id = manager_id; -- Full Hierarchy of Employees Table, Top Down.
+
+
+-- 11.3) Formatting Hierarchy Using LEVEL and LPAD:
+
+select level, lpad(last_name, length(last_name) + (level * 2) - 2, '> ') as hierarchy
+from employees
+start with employee_id = 101
+connect by prior employee_id = manager_id;
+
+select level, lpad(last_name, length(last_name) + (level * 2) - 2, '> ') as hierarchy
+from employees
+start with manager_id is null
+connect by prior employee_id = manager_id; -- Full Hierarchy of Employees Table, Top Down.
+
+
+-- 11.4) Pruning Branches:
+
+select level, lpad(last_name, length(last_name) + (level * 2) - 2, '> ') as hierarchy, employee_id,
+                   manager_id
+from employees
+start with employee_id = 101
+connect by prior employee_id = manager_id;
+
+-- WHERE Clause Eliminates Records from Hierarchy Which Matches the Condition:
+select level, lpad(last_name, length(last_name) + (level * 2) - 2, '> ') as hierarchy, employee_id,
+                   manager_id
+from employees
+where employee_id != 108
+start with employee_id = 101
+connect by prior employee_id = manager_id; 
+
+-- Condition after The CONNECT BY CLAUSE Eliminates Records That Matches The Condition and
+-- Also Their Child Records
+select level, lpad(last_name, length(last_name) + (level * 2) - 2, '> ') as hierarchy, employee_id,
+                   manager_id
+from employees
+start with employee_id = 101
+connect by prior employee_id = manager_id
+and employee_id != 108;
