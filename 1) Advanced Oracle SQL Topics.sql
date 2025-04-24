@@ -1,4 +1,4 @@
----------------------------- Advance SQL Topics --------------------------------
+---------------------------- Advanced SQL Topics --------------------------------
 
 -- 1) Data Dictionary Views:
 /* Collection of Tables and Views that contains Infromation about The Database,
