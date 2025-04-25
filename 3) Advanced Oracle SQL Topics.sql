@@ -412,3 +412,215 @@ values (
         );
         
 select * from employees_for_regexp;
+
+
+--------------------------------------------------------------------------------
+
+-- 16) Analytical Functions:
+
+select department_id, avg(salary),2
+from employees
+group by department_id;
+
+select department_id, avg(salary) over (partition by department_id)
+from employees;
+
+select employee_id, department_id, salary,
+        avg(salary) over (partition by department_id order by employee_id)
+from employees;
+
+
+-- 16.1) ROW_NUMBER():
+-- Gives Increasing Serial Number for Every Records Starting From 1 for Each Partition.
+
+select employee_id, department_id, hire_date,
+       row_number() over (partition by department_id order by hire_date nulls last) as "Row Number"
+from employees
+where department_id in (10, 20, 30)
+order by department_id;
+
+select employee_id, department_id, hire_date,
+       row_number() over (partition by department_id order by hire_date nulls last) as "Row Number"
+from employees
+-- where department_id in (10, 20, 30)
+order by department_id;
+
+
+-- 16.2) RANK() and DENSE_RANK():
+
+select employee_id, department_id, salary,
+       rank() over (partition by department_id order by salary desc nulls last) as "Rank",
+       dense_rank() over (partition by department_id order by salary desc nulls last) as "Dense Rank"
+from employees
+order by department_id;
+
+
+-- 16.3) LEAD() and LAG():
+/*
+LEAD Function Returns NEXT Row's Value for The Specified Column.
+LAG Function Returns PREVIOUS Row's Value for The Specified Column.
+*/
+
+select employee_id, department_id, salary,
+       lead(salary, 1, 0) over (partition by department_id order by salary nulls last) as "Next Salary",
+       lag(salary, 1, 0) over (partition by department_id order by salary nulls last) as "Previous Salary"
+from employees
+order by department_id;
+
+select employee_id, department_id, salary,
+       lead(salary, 2, 0) over (partition by department_id order by salary nulls last) as "Next Salary",
+       lag(salary, 2, 0) over (partition by department_id order by salary nulls last) as "Previous Salary"
+from employees
+order by department_id;
+
+select employee_id, department_id, salary,
+       lead(salary, 1, 0) over (partition by department_id order by salary desc nulls last) as "Next Salary",
+       lag(salary, 1, 0) over (partition by department_id order by salary desc nulls last) as "Previous Salary"
+from employees
+order by department_id;
+
+
+-- 16.4) WINDOWING Clause:
+/*
+Gives Analytic Functions Further Degree of Control Over Partitions.
+*/
+
+select employee_id, department_id, salary,
+       sum(salary) over (partition by department_id order by salary) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over (partition by department_id order by salary rows 1 preceding) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over (partition by department_id order by salary rows 2 preceding) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary rows between 0 preceding and 1 following) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary rows between 0 preceding and 2 following) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary rows between 1 preceding and 1 following) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary 
+        rows between unbounded preceding and 0 following) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary 
+        rows between unbounded preceding and 1 following) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary 
+        rows between unbounded preceding and 2 following) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary 
+        rows between unbounded preceding and unbounded following) windowing
+from employees
+order by department_id, salary;
+
+--
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary 
+        range between unbounded preceding and unbounded following) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary 
+        range between 0 preceding and 100 following) windowing
+from employees
+order by department_id, salary;
+
+select employee_id, department_id, salary,
+       sum(salary) over 
+       (partition by department_id order by salary 
+        range between 100 preceding and 100 following) windowing
+from employees
+order by department_id, salary;
+
+
+-- 16.5) INTERVAL Keyword:
+
+select employee_id, department_id, salary, hire_date,
+       sum(salary) over (partition by department_id order by hire_date
+                        range between interval '1' year preceding and interval '1' year following) sums
+from employees
+order by department_id;
+
+select employee_id, department_id, salary, hire_date,
+       sum(salary) over (partition by department_id order by hire_date
+                        range between interval '1' month preceding and interval '1' month following) sums
+from employees
+order by department_id;
+
+
+-- 16.6) FIRST_VALUE() and LAST_VALUE():
+
+select employee_id, department_id, salary,
+        first_value(salary) ignore nulls
+        over (partition by department_id order by salary) as "Low Salary",
+        
+        last_value(salary) ignore nulls
+        over (partition by department_id order by salary) as "High Salary"
+from employees
+order by department_id;
+/*
+Above Query works but Returns Wrong Result for High Salary as Default Windowing is
+"Rows Between Unbounded Preceding and Current Row", meaning for Each Row, The Row itself
+will be The Highest Salary, Without Checking The Following Rows of The Partition.
+*/
+
+select employee_id, department_id, salary,
+       first_value(salary) ignore nulls
+       over (partition by department_id order by salary) as "Low Salary",
+       
+       last_value(salary) ignore nulls
+       over (partition by department_id order by salary
+            rows between unbounded preceding and unbounded following) as "High Salary"
+from employees
+order by department_id;
+
+
+-- 16.7) Selecting TOP-N Rows:
+
+select employee_id, department_id, salary,
+        row_number() over (partition by department_id order by salary desc) as row_number
+from employees;
+
+-- Top-3 Salaries from Each department
+select * from (
+                select employee_id, department_id, salary,
+                row_number() over (partition by department_id order by salary desc) as row_number
+                from employees)
+where row_number <= 3;
