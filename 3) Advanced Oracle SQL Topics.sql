@@ -261,3 +261,154 @@ DROP TABLE SYS_TEMP_FBT_BACKUP;
 purge recyclebin;
 
 select * from recyclebin;
+
+
+--------------------------------------------------------------------------------
+
+-- 15) Regular Expressions:
+
+-- 15.1) REGEXP_LIKE:
+
+select * from employees
+where regexp_like(first_name, '^Ste(v|ph)en$');
+
+alter table employees_copy
+add constraint phone_no_ck
+check(regexp_like(phone_number, '^\d{3}.\d{3}.\d{4}$'))
+novalidate;
+
+
+-- 15.2) REGEXP_REPLACE:
+
+select phone_number, regexp_replace(phone_number, '\.', ' ') as phone
+from employees;
+
+select first_name, regexp_replace(first_name, 'a|e|i|o|u', '-') as name
+from employees;
+
+select first_name, regexp_replace(first_name, 'a|e|i|o|u', '-', 1, 0, 'i') as name
+from employees;
+
+select regexp_replace('I earned 200 rupees in 2 hours', '\d', 3) as example
+from dual;
+
+select regexp_replace('I earned 200 rupees in 2 hours', '\d', 3, 15) as example
+from dual;
+
+select regexp_replace('I earned 200 rupees in 2 hours', '\d', 3, 1, 3) as example
+from dual;
+
+
+-- 15.3) REGEXP_SUBSTR:
+
+select first_name, regexp_substr(first_name, 'a|e|i|o|u') as name
+from employees;
+
+select first_name, regexp_substr(first_name, 'a|e|i|o|u', 1, 1, 'i') as name
+from employees;
+
+select first_name, regexp_substr(first_name, 'a|e|i|o|u', 1, 2, 'i') as name
+from employees;
+
+select regexp_substr('I earned 400 rupees in 2 hours', '\d') as sub
+from dual;
+
+select regexp_substr('I earned 400 rupees in 2 hours', '\d', 1, 3) as sub
+from dual;
+
+select regexp_substr('Hello my name is SQL', ' [^ ]+ ') as sub
+from dual;
+
+select regexp_substr('Hello my name is SQL', '(\s)(\S*)(\s)') as sub
+from dual;
+
+
+-- 15.4) REGEXP_INSTR:
+
+select first_name, regexp_instr(first_name, 'a|e|i|o|u') as name
+from employees;
+
+select first_name, regexp_instr(first_name, 'a|e|i|o|u', 1, 1, 0, 'i') as name
+from employees;
+
+select first_name, regexp_instr(first_name, 'a|e|i|o|u', 1, 2, 0, 'i') as name
+from employees;
+
+select first_name, regexp_instr(first_name, 'a|e|i|o|u', 1, 2, 1, 'i') as name
+from employees;
+
+select regexp_instr('Hello my name is SQL', ' [^ ]+ ') as sub
+from dual;
+
+select regexp_instr('Hello my name is SQL', '(\s)(\S*)(\s)') as sub
+from dual;
+
+select * 
+from employees
+where regexp_instr(phone_number, '123') > 0;
+
+
+-- 15.5) REGEXP_COUNT:
+
+select first_name, regexp_count(first_name, 'a|e|i|o|u') as name
+from employees;
+
+select first_name, regexp_count(first_name, 'a|e|i|o|u', 1, 'i') as name
+from employees;
+
+select first_name, regexp_count(first_name, 'a|e|i|o|u', 3, 'i') as name
+from employees;
+
+select regexp_count('I earned 400 rupees in 2 hours', '\d') as sub
+from dual;
+
+select regexp_count('I earned 400 rupees in 2 hours', '\d', 12) as sub
+from dual;
+
+select regexp_count('Hello my name is SQL', ' [^ ]+ ') as sub
+from dual;
+
+select regexp_count('Hello my name is SQL', '(\s)(\S*)(\s)') as sub
+from dual;
+
+select * 
+from employees
+where regexp_count(phone_number, '123') > 0;
+
+
+-- 15.6) Regular Expressions in Constraints:
+
+create table employees_for_regexp
+as
+select first_name, lasT_name, email
+from employees;
+
+select * from employees_for_regexp;
+
+alter table employees_for_regexp
+add constraint regexp_email_ck
+check (regexp_like(email, '(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'))
+novalidate;
+
+insert into employees_for_regexp
+values (
+        'Alex',
+        'Brown',
+        'abc899'
+        ); -- ORA-02290: check constraint (HR.REGEXP_EMAIL_CK) violated
+        
+insert into employees_for_regexp
+values (
+        'Alex',
+        'Brown',
+        'abc899@aaa'
+        ); -- ORA-02290: check constraint (HR.REGEXP_EMAIL_CK) violated
+        
+insert into employees_for_regexp
+values (
+        'Alex',
+        'Brown',
+        'AlexBrown@abc.com'
+        );
+        
+select * from employees_for_regexp;
